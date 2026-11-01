@@ -1,3 +1,4 @@
+java
 package pl.alek.alekclient;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
@@ -5,7 +6,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
@@ -52,7 +52,7 @@ public class HitboxRenderer {
             float[] c = colorFor(e, cfg);
             Vec3d lerped = e.getLerpedPos(tickDelta);
             Box box = e.getBoundingBox().offset(lerped.x - e.getX(), lerped.y - e.getY(), lerped.z - e.getZ());
-            WorldRenderer.drawBox(matrices, lines, box, c[0], c[1], c[2], 1.0f);
+            drawBox(matrices, lines, box, c[0], c[1], c[2]);
         }
 
         matrices.pop();
@@ -60,6 +60,37 @@ public class HitboxRenderer {
         if (ctx.consumers() instanceof VertexConsumerProvider.Immediate immediate) {
             immediate.draw(RenderLayer.getLines());
         }
+    }
+
+    /** Wlasne rysowanie ramki (12 krawedzi), bez zaleznosci od metod Minecrafta, ktore sie przenosza. */
+    private static void drawBox(MatrixStack matrices, VertexConsumer lines, Box b, float r, float g, float bl) {
+        MatrixStack.Entry entry = matrices.peek();
+        float x1 = (float) b.minX, y1 = (float) b.minY, z1 = (float) b.minZ;
+        float x2 = (float) b.maxX, y2 = (float) b.maxY, z2 = (float) b.maxZ;
+        int ri = (int) (r * 255), gi = (int) (g * 255), bi = (int) (bl * 255);
+
+        // krawedzie wzdluz X
+        line(entry, lines, x1, y1, z1, x2, y1, z1, ri, gi, bi, 1, 0, 0);
+        line(entry, lines, x1, y2, z1, x2, y2, z1, ri, gi, bi, 1, 0, 0);
+        line(entry, lines, x1, y1, z2, x2, y1, z2, ri, gi, bi, 1, 0, 0);
+        line(entry, lines, x1, y2, z2, x2, y2, z2, ri, gi, bi, 1, 0, 0);
+        // krawedzie wzdluz Y
+        line(entry, lines, x1, y1, z1, x1, y2, z1, ri, gi, bi, 0, 1, 0);
+        line(entry, lines, x2, y1, z1, x2, y2, z1, ri, gi, bi, 0, 1, 0);
+        line(entry, lines, x1, y1, z2, x1, y2, z2, ri, gi, bi, 0, 1, 0);
+        line(entry, lines, x2, y1, z2, x2, y2, z2, ri, gi, bi, 0, 1, 0);
+        // krawedzie wzdluz Z
+        line(entry, lines, x1, y1, z1, x1, y1, z2, ri, gi, bi, 0, 0, 1);
+        line(entry, lines, x2, y1, z1, x2, y1, z2, ri, gi, bi, 0, 0, 1);
+        line(entry, lines, x1, y2, z1, x1, y2, z2, ri, gi, bi, 0, 0, 1);
+        line(entry, lines, x2, y2, z1, x2, y2, z2, ri, gi, bi, 0, 0, 1);
+    }
+
+    private static void line(MatrixStack.Entry entry, VertexConsumer lines,
+                             float x1, float y1, float z1, float x2, float y2, float z2,
+                             int r, int g, int b, float nx, float ny, float nz) {
+        lines.vertex(entry, x1, y1, z1).color(r, g, b, 255).normal(entry, nx, ny, nz);
+        lines.vertex(entry, x2, y2, z2).color(r, g, b, 255).normal(entry, nx, ny, nz);
     }
 
     private static float[] colorFor(Entity e, AlekConfig cfg) {
