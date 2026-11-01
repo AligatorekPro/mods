@@ -1,4 +1,3 @@
-java
 package pl.alek.alekclient;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
